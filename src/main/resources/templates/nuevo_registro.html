@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar Reserva</title>
+    <style>
+		body { 
+		    font-family: Arial, sans-serif; 
+		    background-image: url('/paisaje.png'); 
+		    background-size: cover; 
+		    background-position: center; 
+		    background-repeat: no-repeat; 
+		    background-attachment: fixed; 
+		    margin: 40px; 
+		    color: #333; 
+		}
+        .form-card { background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
+        h2 { margin-top: 0; color: #2c3e50; margin-bottom: 20px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 14px; color: #444; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .btn-container { margin-top: 25px; }
+        .btn-guardar { background-color: #4b6cb7; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .btn-guardar:hover { background-color: #3b5998; }
+        .btn-cancelar { color: #666; text-decoration: none; margin-left: 15px; font-size: 14px; }
+        .alert-error { background-color: #f8d7da; color: #721c24; padding: 12px; border: 1px solid #f5c6cb; border-radius: 4px; margin-bottom: 20px; font-size: 14px; }
+        
+        .stock-banner {
+            background-color: #e8f4fd;
+            border-left: 4px solid #3182ce;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #2b6cb0;
+        }
+        .stock-banner.warning {
+            background-color: #fffaf0;
+            border-left-color: #dd6b20;
+            color: #c05621;
+        }
+
+        .penalty-card {
+            background-color: #fff5f5;
+            border-left: 4px solid #e53e3e;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #9b2c2c;
+        }
+        .penalty-card ul { margin: 5px 0 0 15px; padding: 0; }
+    </style>
+</head>
+<body>
+
+<div class="form-card">
+	<div style="text-align: left; margin-bottom: 15px;">
+	  <img th:src="@{/Uch.png}" alt="Logo UCH" style="max-width: 160px; height: auto;">
+	</div>
+    <h2>Registrar Reserva</h2>
+
+
+    <div id="stockBanner" class="stock-banner">
+        Cargando disponibilidad de balones...
+    </div>
+
+	<div th:if="${errorMessage}" class="alert-error" style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-weight: bold;">
+	    ⚠️ <span th:text="${errorMessage}">No se pueden generar reservas por hoy por falta de balones disponibles. Esperar hasta nuevo aviso.</span>
+	</div>
+	
+    <div class="penalty-card">
+        <strong>⚠️ Reglas y Penalidades por Incidencias (PEN):</strong>
+        <ul>
+            <li><strong>FÚTBOL:</strong> Desinflado/Hueco: PEN 10.00 | Pelado: PEN 6.00 | Pérdida: PEN 20.00</li>
+            <li><strong>VÓLEY:</strong> Desinflado/Hueco: PEN 10.00 | Pérdida: PEN 18.00</li>
+            <li><strong>BÁSQUET:</strong> Desinflado/Hueco: PEN 13.00 | Pérdida: PEN 20.00</li>
+        </ul>
+    </div>
+
+    <form th:action="@{/reservas/guardar}" th:object="${reserva}" method="post">
+        <div class="form-group">
+            <label>Código de Estudiante (8 dígitos):</label>
+            <input type="text" th:field="*{codigoEstudiante}" placeholder="Ej: 24101056" pattern="[0-9]{8}" maxlength="8" title="Debe ingresar exactamente 8 dígitos" required />
+        </div>
+        <div class="form-group">
+            <label>Tipo Deporte:</label>
+            <select th:field="*{tipoDeporte}" id="selectDeporte" onchange="actualizarMensajeStock()">
+                <option value="FUTBOL">FÚTBOL</option>
+                <option value="VOLEY">VÓLEY</option>
+                <option value="BÁSQUET">BÁSQUET</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Horas de Reserva (1 o 2 hrs):</label>
+            <input type="number" th:field="*{horasReserva}" min="1" max="2" value="1" required />
+        </div>
+        <div class="form-group">
+            <label>Estado:</label>
+            <select th:field="*{estado}">
+                <option value="">-- Automático --</option>
+                <option value="APROBADO">APROBADO</option>
+                <option value="OBSERVADO">OBSERVADO</option>
+            </select>
+        </div>
+        <div class="btn-container">
+            <button type="submit" class="btn-guardar">Guardar Reserva</button>
+            <a th:href="@{/reservas}" class="btn-cancelar">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script th:inline="javascript">
+    const stockMap = /*[[${stockDisponible}]]*/ { "FUTBOL": 2, "VOLEY": 2, "BÁSQUET": 2 };
+
+    function actualizarMensajeStock() {
+        const deporteSelect = document.getElementById("selectDeporte").value;
+        const banner = document.getElementById("stockBanner");
+        const disponible = stockMap[deporteSelect] !== undefined ? stockMap[deporteSelect] : 2;
+
+        if (disponible === 2) {
+            banner.className = "stock-banner";
+            banner.innerHTML = `<strong>Disponibilidad Total:</strong> Hay <strong>2 balones libres</strong> de ${deporteSelect}. Su reserva será aprobada de inmediato.`;
+        } else if (disponible === 1) {
+            banner.className = "stock-banner warning";
+            banner.innerHTML = `<strong>Atención:</strong> Queda <strong>1 balón libre</strong> de ${deporteSelect}. La próxima solicitud para este deporte pasará a estar OBSERVADA.`;
+        } else {
+            banner.className = "stock-banner warning";
+            banner.innerHTML = `<strong>Aviso de Espera:</strong> No hay balones libres de ${deporteSelect} (0 de 2 disponibles). Si genera la reserva ahora, pasará a estado <strong>OBSERVADO</strong> hasta que se libere un balón.`;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", actualizarMensajeStock);
+</script>
+
+</body>
+</html>

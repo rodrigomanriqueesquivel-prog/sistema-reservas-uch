@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Reservas</title>
+    <style>
+		body { 
+		    font-family: Arial, sans-serif; 
+		    background-image: url('/paisaje.png'); 
+		    background-size: cover; 
+		    background-position: center; 
+		    background-repeat: no-repeat; 
+		    background-attachment: fixed; 
+		    margin: 40px; 
+		    color: #333; 
+		}
+        .card { background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 1250px; margin: 0 auto; }
+        
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        h1 { margin-top: 0; color: #2c3e50; font-size: 26px; }
+        .info-header { margin-bottom: 25px; line-height: 1.6; color: #555; }
+        
+        /* Botones de acción principal */
+        .btn-primary { display: inline-block; background-color: #4b6cb7; color: white; padding: 10px 18px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: background 0.3s; }
+        .btn-primary:hover { background-color: #3b5998; }
+        
+        .btn-historial { background-color: #ffffff; color: #2c3e50; border: 1px solid #ccc; padding: 9px 16px; border-radius: 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .btn-historial:hover { background-color: #f0f0f0; border-color: #bbb; }
+
+        .btn-danger { color: #dc3545; text-decoration: none; font-weight: bold; font-size: 12px; }
+        .btn-danger:hover { text-decoration: underline; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
+        th { background-color: #4b6cb7; color: white; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+        tr:nth-child(even) { background-color: #f9fbfd; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .badge-aprobado { background-color: #d4edda; color: #155724; }
+        .badge-observado { background-color: #fff3cd; color: #856404; }
+        .badge-pendiente { background-color: #e2e3e5; color: #383d41; }
+        .timer { font-weight: bold; color: #d9534f; }
+        
+        .form-dev { display: flex; gap: 4px; align-items: center; }
+        .form-dev select { font-size: 11px; padding: 3px; }
+        .btn-dev { background-color: #28a745; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+        .penalty-text { color: #c0392b; font-weight: bold; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-container { background: #ffffff; width: 90%; max-width: 1100px; max-height: 85vh; border-radius: 8px; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: fadeIn 0.3s ease; }
+        
+        .modal-header { background: #2c3e50; color: white; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { margin: 0; font-size: 18px; }
+        .close-btn { color: white; font-size: 24px; font-weight: bold; cursor: pointer; border: none; background: none; }
+        .close-btn:hover { color: #e74c3c; }
+
+        .modal-body { padding: 20px 25px; }
+        .modal-body th { background-color: #34495e; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+	<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+	  <h1>Gestión de Reservas Deportivas</h1>
+	  <img th:src="@{/Uch.png}" alt="Logo UCH" style="height: 75px; width: auto;">
+	</div>
+
+    <div class="info-header">
+        <p><strong>Empresa / Institución:</strong> Universidad de Ciencias y Humanidades (UCH)</p>
+        <p><strong>Área:</strong> Gestión y Reserva Deportiva</p>
+        <p><strong>Proceso:</strong> Solicitud y Aprobación de Equipo deportivo</p>
+    </div>
+
+    <div class="header-actions">
+        <a th:href="@{/reservas/nuevo}" class="btn-primary">Registrar nueva reserva</a>
+        <button class="btn-historial" onclick="abrirModalHistorial()">
+            📋 Ver historial
+        </button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID / Código</th>
+                <th>Estudiante</th>
+                <th>Deporte</th>
+                <th>Horas</th>
+                <th>Fecha / Hora</th>
+                <th>Tiempo Restante</th>
+                <th>Estado</th>
+                <th>Penalidad</th>
+                <th>Total</th>
+                <th>Devolución / Incidencia</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="r : ${reservas}">
+                <td th:text="${r.codigoReserva}">RES-1001</td>
+                <td th:text="${r.codigoEstudiante}">24101056</td>
+                <td th:text="${r.tipoDeporte}">FUTBOL</td>
+                <td th:text="${r.horasReserva}">1</td>
+                <td th:text="${#temporals.format(r.fechaInicio, 'dd/MM/yyyy HH:mm')}">18/09/2026 17:30</td>
+                <td>
+                    <span th:if="${r.estado == 'APROBADO'}" 
+                          class="timer" 
+                          th:data-inicio="${r.fechaInicio}" 
+                          th:data-horas="${r.horasReserva}">
+                        Calculando...
+                    </span>
+                    <span th:unless="${r.estado == 'APROBADO'}">En espera</span>
+                </td>
+                <td>
+                    <span th:text="${r.estado}"
+                          th:class="${r.estado == 'APROBADO' ? 'badge badge-aprobado' : (r.estado == 'OBSERVADO' ? 'badge badge-observado' : 'badge badge-pendiente')}">
+                        APROBADO
+                    </span>
+                </td>
+                <td class="penalty-text" th:text="${'PEN ' + r.montoPenalidad}">PEN 0.0</td>
+                <td style="font-weight: bold;" th:text="${'PEN ' + r.montoTotal}">PEN 0.0</td>
+                <td>
+                    <form th:action="@{/reservas/devolver}" method="post" class="form-dev">
+                        <input type="hidden" name="codigoReserva" th:value="${r.codigoReserva}" />
+                        <select name="estadoDevolucion" 
+                                th:id="${'estDev_' + r.codigoReserva}" 
+                                th:onchange="cambiarOpcionesDano([[${r.codigoReserva}]])">
+                            <option value="CONFORME" th:selected="${r.estadoDevolucion == 'CONFORME'}">Conforme</option>
+                            <option value="DANADO" th:selected="${r.estadoDevolucion == 'DANADO'}">Dañado</option>
+                            <option value="PERDIDO" th:selected="${r.estadoDevolucion == 'PERDIDO'}">Perdido</option>
+                        </select>
+
+                        <select name="tipoDano" th:id="${'tipoDano_' + r.codigoReserva}" style="display:none;">
+                            <option value="HUECO">Desinflado / Hueco</option>
+                            <option value="PELADO" th:if="${r.tipoDeporte == 'FUTBOL'}">Pelado</option>
+                        </select>
+
+                        <button type="submit" class="btn-dev">Aplicar</button>
+                    </form>
+                </td>
+                <td>
+                    <a th:href="@{/reservas/eliminar/{codigo}(codigo=${r.codigoReserva})}" 
+                       class="btn-danger" 
+                       onclick="return confirm('¿Mover esta reserva al historial?');">Finalizar</a>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(reservas)}">
+                <td colspan="11" style="text-align: center; color: #777;">No hay reservas activas en este momento.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="modalHistorial" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>HISTORIAL DE RESERVAS FINALIZADAS</h2>
+            <button class="close-btn" onclick="cerrarModalHistorial()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID / Código</th>
+                        <th>Estudiante</th>
+                        <th>Deporte</th>
+                        <th>Horas</th>
+						<th>Duracion</th>
+                        <th>Fecha / Hora</th>
+                        <th>Incidencia</th>
+                        <th>Penalidad</th>
+                        <th>Total</th>
+                        <th>¿Pago Realizado?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="h : ${historial}">
+                        <td th:text="${h.codigoReserva}">RES-1001</td>
+                        <td th:text="${h.codigoEstudiante}">24101056</td>
+                        <td th:text="${h.tipoDeporte}">FUTBOL</td>
+                        <td th:text="${h.horasReserva}">1</td>
+						<td style="font-weight: bold; color: #2c3e50;" th:text="${h.duracionUso}">30 m</td>
+						<td th:text="${#temporals.format(h.fechaInicio, 'dd/MM/yyyy HH:mm')}">18/09/2026 17:30</td>
+						<td th:text="${h.estadoDevolucion}">CONFORME</td>
+                        <td class="penalty-text" th:text="${'PEN ' + h.montoPenalidad}">PEN 0.0</td>
+                        <td style="font-weight: bold;" th:text="${'PEN ' + h.montoTotal}">PEN 0.0</td>
+                        <td>
+                
+                            <span th:if="${h.pagoRealizado != null and h.pagoRealizado != ''}" 
+                                  th:text="${h.pagoRealizado}" 
+                                  th:class="${h.pagoRealizado == 'SÍ' ? 'badge badge-aprobado' : 'badge badge-observado'}">
+                                SÍ
+                            </span>
+
+                            <form th:unless="${h.pagoRealizado != null and h.pagoRealizado != ''}" 
+                                  th:action="@{/reservas/pago}" method="post" class="form-dev">
+                                <input type="hidden" name="codigoReserva" th:value="${h.codigoReserva}" />
+                                <select name="pagoRealizado" required>
+                                    <option value="" disabled selected>Seleccione...</option>
+                                    <option value="SÍ">SÍ</option>
+                                    <option value="NO">NO</option>
+                                </select>
+                                <button type="submit" class="btn-dev">Aplicar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(historial)}">
+                        <td colspan="10" style="text-align: center; color: #777;">Aún no hay registros archivados en el historial.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function abrirModalHistorial() {
+        document.getElementById('modalHistorial').style.display = 'flex';
+    }
+
+    function cerrarModalHistorial() {
+        document.getElementById('modalHistorial').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('modalHistorial');
+        if (event.target === modal) {
+            cerrarModalHistorial();
+        }
+    };
+
+    function cambiarOpcionesDano(codigo) {
+        const estDev = document.getElementById('estDev_' + codigo).value;
+        const selectDano = document.getElementById('tipoDano_' + codigo);
+
+        if (estDev === 'DANADO') {
+            selectDano.style.display = 'inline-block';
+        } else {
+            selectDano.style.display = 'none';
+        }
+    }
+
+    function actualizarContadores() {
+        const timers = document.querySelectorAll('.timer');
+        timers.forEach(timer => {
+            const inicioStr = timer.getAttribute('data-inicio');
+            const horas = parseInt(timer.getAttribute('data-horas'));
+            if (!inicioStr) return;
+
+            const inicio = new Date(inicioStr);
+            const fin = new Date(inicio.getTime() + horas * 60 * 60 * 1000);
+            const ahora = new Date();
+            const diferencia = fin - ahora;
+
+            if (diferencia <= 0) {
+                timer.innerHTML = "Tiempo agotado";
+                timer.style.color = "red";
+            } else {
+                const min = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+                const sec = Math.floor((diferencia % (1000 * 60)) / 1000);
+                timer.innerHTML = `${min}m ${sec}s`;
+            }
+        });
+    }
+    setInterval(actualizarContadores, 1000);
+    actualizarContadores();
+</script>
+
+</body>
+</html>
