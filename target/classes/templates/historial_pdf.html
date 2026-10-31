@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Historial de Reservas - UCH</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            color: #333; 
+            background-color: #f4f6f9;
+        }
+        .report-container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .top-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 20px;
+            max-width: 950px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .header-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+        .header-left img {
+            max-width: 140px;
+            height: auto;
+        }
+        .header-center {
+            text-align: center;
+            flex-grow: 1;
+            padding: 0 15px;
+        }
+        .header-center h2 { 
+            margin: 0; 
+            color: #2c3e50; 
+            font-size: 16px; 
+            text-transform: uppercase;
+        }
+        .header-center p { 
+            margin: 3px 0; 
+            font-size: 11px; 
+            color: #555; 
+        }
+        .header-right {
+            text-align: right;
+            font-size: 11px;
+            color: #555;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 10px; 
+        }
+        th, td { 
+            border: 1px solid #ccc; 
+            padding: 8px 6px; 
+            font-size: 11px; 
+            text-align: left; 
+        }
+        th { 
+            background-color: #2c3e50; 
+            color: white; 
+            text-transform: uppercase; 
+            font-size: 10px;
+            letter-spacing: 0.5px;
+        }
+        tr:nth-child(even) { 
+            background-color: #fcfcfc; 
+        }
+        .badge {
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 10px;
+        }
+        .badge-aprobado { background-color: #d4edda; color: #155724; }
+        .badge-observado { background-color: #fff3cd; color: #856404; }
+        .penalty-text { color: #c0392b; font-weight: bold; }
+        @media print {
+            .no-print { display: none; }
+            body { background: #fff; padding: 0; }
+            .report-container { box-shadow: none; padding: 0; max-width: 100%; }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+    <div class="no-print top-actions">
+        <button onclick="window.print()" style="padding: 8px 14px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">
+            Imprimir / Guardar PDF
+        </button>
+        <button onclick="window.close()" style="padding: 8px 14px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">
+            Cerrar Ventana
+        </button>
+    </div>
+
+    <div class="report-container">
+        <div class="header-card">
+            <div class="header-left">
+                <img th:src="@{/Uch.png}" alt="Logo UCH">
+            </div>
+            <div class="header-center">
+                <h2>Universidad de Ciencias y Humanidades (UCH)</h2>
+                <p>Dirección de Gestión y Reserva Deportiva</p>
+                <p><strong>REPORTE OFICIAL DE HISTORIAL DE RESERVAS FINALIZADAS</strong></p>
+            </div>
+            <div class="header-right">
+                <p><strong>Fecha:</strong> <span th:text="${#temporals.format(fechaGeneracion, 'dd/MM/yyyy HH:mm')}">30/10/2026 22:40</span></p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID / Código</th>
+                    <th>Estudiante</th>
+                    <th>Deporte</th>
+                    <th>Horas</th>
+                    <th>Duración</th>
+                    <th>Fecha / Hora</th>
+                    <th>Incidencia</th>
+                    <th>Penalidad</th>
+                    <th>Total</th>
+                    <th>¿Pago Realizado?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="h : ${historial}">
+                    <td th:text="${h.codigoReserva}">RES-1001</td>
+                    <td th:text="${h.codigoEstudiante}">24101010</td>
+                    <td th:text="${h.tipoDeporte}">FUTBOL</td>
+                    <td th:text="${h.horasReserva}">1</td>
+                    <td th:text="${h.duracionUso}">1 min</td>
+                    <td th:text="${#temporals.format(h.fechaInicio, 'dd/MM/yyyy HH:mm')}">30/10/2026 22:40</td>
+                    <td th:text="${h.estadoDevolucion}">CONFORME</td>
+                    <td class="penalty-text" th:text="${'PEN ' + h.montoPenalidad}">PEN 0.0</td>
+                    <td style="font-weight: bold;" th:text="${'PEN ' + h.montoTotal}">PEN 0.0</td>
+                    <td>
+                        <span th:if="${h.pagoRealizado != null and h.pagoRealizado != ''}" 
+                              th:text="${h.pagoRealizado}" 
+                              th:class="${h.pagoRealizado == 'SÍ' ? 'badge badge-aprobado' : 'badge badge-observado'}">SÍ</span>
+                        <span th:unless="${h.pagoRealizado != null and h.pagoRealizado != ''}" style="color: #999;">PENDIENTE</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

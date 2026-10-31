@@ -107,18 +107,8 @@ public class ProcesoService {
         }
 
         String codigoLimpio = codigoEstudiante.trim();
-
-        boolean tieneActiva = repository.listar().stream()
-                .filter(r -> r.getFechaFin() == null) 
-                .anyMatch(r -> r.getCodigoEstudiante() != null 
-                        && r.getCodigoEstudiante().trim().equalsIgnoreCase(codigoLimpio));
-
-        if (tieneActiva) {
-            return "El estudiante con código " + codigoLimpio + " ya cuenta con una reserva activa en curso.";
-        }
-
         java.time.LocalDate hoy = java.time.LocalDate.now();
-        
+
         java.util.List<ReservaModelo> reservasHoy = listarHistorial().stream()
                 .filter(r -> r.getCodigoEstudiante() != null 
                         && r.getCodigoEstudiante().trim().equalsIgnoreCase(codigoLimpio))
@@ -126,13 +116,22 @@ public class ProcesoService {
                           || (r.getFechaInicio() != null && r.getFechaInicio().toLocalDate().equals(hoy)))
                 .collect(java.util.stream.Collectors.toList());
 
+        boolean tieneActiva = listarReservas().stream()
+                .anyMatch(r -> r.getCodigoEstudiante() != null 
+                        && r.getCodigoEstudiante().trim().equalsIgnoreCase(codigoLimpio));
+
+        boolean estaEnHistorialHoy = !reservasHoy.isEmpty();
+
+        if (tieneActiva && !estaEnHistorialHoy) {
+            return "El estudiante con código " + codigoLimpio + " ya cuenta con una reserva activa en curso.";
+        }
+
         if (reservasHoy.size() >= 2) {
             return "El estudiante con código " + codigoLimpio + " ya alcanzó el límite máximo de 2 reservas por día.";
         }
 
         if (reservasHoy.size() == 1) {
             ReservaModelo ultimaReserva = reservasHoy.get(0);
-            
             java.time.LocalDateTime horaReferencia = ultimaReserva.getFechaFin() != null 
                     ? ultimaReserva.getFechaFin() 
                     : ultimaReserva.getFechaInicio();
@@ -142,11 +141,84 @@ public class ProcesoService {
                 
                 if (minutosTranscurridos < 120) {
                     long minutosRestantes = 120 - minutosTranscurridos;
-                    return "El estudiante " + codigoLimpio + " tiene una segunda reserva disponible, esperar " + minutosRestantes + " minuto(s) para usarla (regla de 2 horas de intervalo).";
+                    return "El estudiante con código " + codigoLimpio + " tiene una segunda reserva disponible, esperar " + minutosRestantes + " minuto(s) para poder usarla (regla de 2 horas de intervalo).";
                 }
             }
         }
 
-        return null;
+        return null; 
+    }
+    public void reabastecerStockDeporte(String deporte) {
+        if (deporte == null) return;
+        
+        boolean reabastecido = false;
+
+        if (repository != null) {
+            if (repository.listarHistorial() != null) {
+                for (ReservaModelo r : repository.listarHistorial()) {
+                    if (r.getTipoDeporte() != null && r.getTipoDeporte().equalsIgnoreCase(deporte)) {
+                        String estado = r.getEstadoDevolucion();
+                        String dano = r.getTipoDano();
+                        boolean esBaja = "PERDIDO".equalsIgnoreCase(estado) || 
+                                         ("DANADO".equalsIgnoreCase(estado) && "HUECO".equalsIgnoreCase(dano));
+                        if (esBaja) {
+                            r.setEstadoDevolucion("CONFORME");
+                            r.setTipoDano(null);
+                            reabastecido = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (!reabastecido && repository.listar() != null) {
+                for (ReservaModelo r : repository.listar()) {
+                    if (r.getTipoDeporte() != null && r.getTipoDeporte().equalsIgnoreCase(deporte)) {
+                        String estado = r.getEstadoDevolucion();
+                        String dano = r.getTipoDano();
+                        boolean esBaja = "PERDIDO".equalsIgnoreCase(estado) || 
+                                         ("DANADO".equalsIgnoreCase(estado) && "HUECO".equalsIgnoreCase(dano));
+                        if (esBaja) {
+                            r.setEstadoDevolucion("CONFORME");
+                            r.setTipoDano(null);
+                            reabastecido = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (reabastecido) {
+            revisarObservados(deporte);
+        }
+    }
+    private void revisarObservados(String deporte) {
+        if (deporte == null || repository == null) return;
+        
+        final int STOCK_MAXIMO_POR_DEPORTE = 2;
+
+        long aprobados = 0;
+        if (repository.listar() != null) {
+            aprobados = repository.listar().stream()
+                    .filter(r -> r.getTipoDeporte() != null 
+                            && r.getTipoDeporte().equalsIgnoreCase(deporte)
+                            && "APROBADO".equalsIgnoreCase(r.getEstado()))
+                    .count();
+        }
+
+        long deBaja = obtenerBalonesBajaPorDeporte(deporte);
+        int cuposDisponibles = Math.max(0, STOCK_MAXIMO_POR_DEPORTE - (int) aprobados - (int) deBaja);
+
+        if (cuposDisponibles > 0 && repository.listar() != null) {
+            java.util.List<ReservaModelo> observados = repository.listar().stream()
+                    .filter(r -> r.getTipoDeporte() != null 
+                            && r.getTipoDeporte().equalsIgnoreCase(deporte)
+                            && "OBSERVADO".equalsIgnoreCase(r.getEstado()))
+                    .collect(java.util.stream.Collectors.toList());
+
+            for (int i = 0; i < Math.min(cuposDisponibles, observados.size()); i++) {
+                observados.get(i).setEstado("APROBADO");
+            }
+        }
     }
 }

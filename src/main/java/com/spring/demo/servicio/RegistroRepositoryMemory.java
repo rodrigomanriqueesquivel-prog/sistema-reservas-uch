@@ -54,18 +54,49 @@ public class RegistroRepositoryMemory {
     }
 
     public void eliminarPorCodigo(String codigo) {
-        ReservaModelo aEliminar = buscarPorCodigo(codigo);
+        if (codigo == null || codigo.trim().isEmpty()) {
+            return;
+        }
+        String codigoLimpio = codigo.trim();
+
+        ReservaModelo aEliminar = null;
+        for (ReservaModelo r : registros) {
+            if (r.getCodigoReserva() != null && r.getCodigoReserva().trim().equalsIgnoreCase(codigoLimpio)) {
+                aEliminar = r;
+                break;
+            }
+        }
+
         if (aEliminar != null) {
-            aEliminar.setFechaFin(java.time.LocalDateTime.now());
+            if (aEliminar.getFechaFin() == null) {
+                aEliminar.setFechaFin(java.time.LocalDateTime.now());
+            }
+            
+            aEliminar.setEstado("FINALIZADO");
+
+            ReservaModelo historicoItem = new ReservaModelo();
+            historicoItem.setCodigoReserva(aEliminar.getCodigoReserva());
+            historicoItem.setCodigoEstudiante(aEliminar.getCodigoEstudiante());
+            historicoItem.setTipoDeporte(aEliminar.getTipoDeporte());
+            historicoItem.setHorasReserva(aEliminar.getHorasReserva());
+            historicoItem.setFechaInicio(aEliminar.getFechaInicio());
+            historicoItem.setFechaFin(aEliminar.getFechaFin());
+            historicoItem.setEstado("FINALIZADO");
+            historicoItem.setEstadoDevolucion(aEliminar.getEstadoDevolucion());
+            historicoItem.setTipoDano(aEliminar.getTipoDano());
+            historicoItem.setMontoPenalidad(aEliminar.getMontoPenalidad());
+
+            if (!historial.contains(historicoItem)) {
+                historial.add(historicoItem);
+            }
 
             String deporte = aEliminar.getTipoDeporte();
             String estadoEliminado = aEliminar.getEstado();
 
-            historial.add(aEliminar);
             registros.removeIf(r -> r.getCodigoReserva() != null 
-                    && r.getCodigoReserva().equalsIgnoreCase(codigo));
+                    && r.getCodigoReserva().trim().equalsIgnoreCase(codigoLimpio));
 
-            if ("APROBADO".equalsIgnoreCase(estadoEliminado)) {
+            if ("APROBADO".equalsIgnoreCase(estadoEliminado) && deporte != null) {
                 long bajasTotales = streamBajas(deporte);
                 long aprobadosActuales = registros.stream()
                     .filter(r -> r.getTipoDeporte() != null 
@@ -86,7 +117,6 @@ public class RegistroRepositoryMemory {
             }
         }
     }
-
     private long streamBajas(String deporte) {
         long bajasActivas = registros.stream()
             .filter(r -> deporte.equalsIgnoreCase(r.getTipoDeporte()))

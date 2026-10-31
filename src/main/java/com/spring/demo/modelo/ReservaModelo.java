@@ -15,7 +15,7 @@ public class ReservaModelo {
     private String estadoDevolucion = "PENDIENTE";
     private String tipoDano = "NINGUNO";
     private double montoPenalidad = 0.0;
-    private String pagoRealizado; // Inicia nulo para mostrar el selector la primera vez
+    private String pagoRealizado; 
 
     public ReservaModelo() {
     }

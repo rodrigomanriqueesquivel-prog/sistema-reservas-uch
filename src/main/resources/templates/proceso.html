@@ -21,7 +21,6 @@
         h1 { margin-top: 0; color: #2c3e50; font-size: 26px; }
         .info-header { margin-bottom: 25px; line-height: 1.6; color: #555; }
         
-        /* Botones de acción principal */
         .btn-primary { display: inline-block; background-color: #4b6cb7; color: white; padding: 10px 18px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: background 0.3s; }
         .btn-primary:hover { background-color: #3b5998; }
         
@@ -78,12 +77,13 @@
         <p><strong>Proceso:</strong> Solicitud y Aprobación de Equipo deportivo</p>
     </div>
 
-    <div class="header-actions">
-        <a th:href="@{/reservas/nuevo}" class="btn-primary">Registrar nueva reserva</a>
-        <button class="btn-historial" onclick="abrirModalHistorial()">
-            📋 Ver historial
-        </button>
-    </div>
+	<div class="header-actions">
+	    <a th:href="@{/reservas/nuevo}" class="btn-primary">Registrar nueva reserva</a>
+	    <a th:href="@{/reservas/stock}" class="btn-primary" style="margin-left: 10px;">Control de Stock</a>
+	    <button class="btn-historial" onclick="abrirModalHistorial()" style="margin-left: auto;">
+	        Ver historial
+	    </button>
+	</div>
 
     <table>
         <thead>
@@ -159,10 +159,15 @@
 
 <div id="modalHistorial" class="modal-overlay">
     <div class="modal-container">
-        <div class="modal-header">
-            <h2>HISTORIAL DE RESERVAS FINALIZADAS</h2>
-            <button class="close-btn" onclick="cerrarModalHistorial()">&times;</button>
-        </div>
+		<div class="modal-header">
+		    <h2>HISTORIAL DE RESERVAS FINALIZADAS</h2>
+		    <div style="display: flex; align-items: center; gap: 8px;">
+		        <button type="button" onclick="descargarPDFHistorial()" style="padding: 4px 10px; font-size: 11px; border: none; border-radius: 4px; background-color: #28a745; color: white; cursor: pointer; font-weight: bold;">
+		            Descargar PDF
+		        </button>
+		        <button class="close-btn" onclick="cerrarModalHistorial()">&times;</button>
+		    </div>
+		</div>
         <div class="modal-body">
             <table>
                 <thead>
@@ -270,6 +275,19 @@
     }
     setInterval(actualizarContadores, 1000);
     actualizarContadores();
+	
+	function descargarPDFHistorial() {
+
+	    const mensajeVacio = document.querySelector("#modalHistorial table tbody td[colspan='10']");
+	    const filasHistorial = document.querySelectorAll("#modalHistorial table tbody tr");
+	    
+	    if (mensajeVacio || filasHistorial.length === 0) {
+	        alert("No es posible descargar el historial sin registros actualmente.");
+	        return;
+	    }
+	    
+	    window.open('/reservas/historial/pdf', '_blank');
+	}
 </script>
 
 </body>

@@ -38,9 +38,7 @@ public class ProcesoMvcController {
                 .filter(r -> !"FINALIZADO".equalsIgnoreCase(r.getEstado()))
                 .collect(Collectors.toList());
 
-        List<ReservaModelo> historial = todas.stream()
-                .filter(r -> "FINALIZADO".equalsIgnoreCase(r.getEstado()))
-                .collect(Collectors.toList());
+        List<ReservaModelo> historial = servicio.listarHistorial();
 
         model.addAttribute("reservas", activas);
         model.addAttribute("historial", historial);
@@ -132,6 +130,9 @@ public class ProcesoMvcController {
         if (reserva != null) {
             deporte = reserva.getTipoDeporte();
             reserva.setEstado("FINALIZADO");
+            
+            servicio.eliminarReserva(codigo);
+            
         } else {
             servicio.eliminarReserva(codigo);
         }
@@ -164,15 +165,24 @@ public class ProcesoMvcController {
     @PostMapping("/reservas/pago")
     public String actualizarPago(@RequestParam("codigoReserva") String codigoReserva,
                                  @RequestParam("pagoRealizado") String pagoRealizado) {
+        
         ReservaModelo reserva = servicio.listarReservas().stream()
-                .filter(r -> r.getCodigoReserva().equalsIgnoreCase(codigoReserva))
+                .filter(r -> r.getCodigoReserva() != null && r.getCodigoReserva().equalsIgnoreCase(codigoReserva))
                 .findFirst()
                 .orElse(null);
 
         if (reserva != null) {
             reserva.setPagoRealizado(pagoRealizado);
+        } else {
+            ReservaModelo reservaHistorica = servicio.listarHistorial().stream()
+                    .filter(r -> r.getCodigoReserva() != null && r.getCodigoReserva().equalsIgnoreCase(codigoReserva))
+                    .findFirst()
+                    .orElse(null);
+            
+            if (reservaHistorica != null) {
+                reservaHistorica.setPagoRealizado(pagoRealizado);
+            }
         }
-
         return "redirect:/reservas";
     }
 
@@ -200,5 +210,30 @@ public class ProcesoMvcController {
                 observados.get(i).setEstado("APROBADO");
             }
         }
+    }
+    @GetMapping("/reservas/stock")
+    public String verControlStock(Model model) {
+        model.addAttribute("bajasFutbol", servicio.obtenerBalonesBajaPorDeporte("FUTBOL"));
+        model.addAttribute("bajasVoley", servicio.obtenerBalonesBajaPorDeporte("VOLEY"));
+        model.addAttribute("bajasBasquet", servicio.obtenerBalonesBajaPorDeporte("BÁSQUET"));
+        return "stock";
+    }
+
+    @PostMapping("/reservas/stock/reabastecer")
+    public String reabastecerStock(@RequestParam("deporte") String deporte) {
+        servicio.reabastecerStockDeporte(deporte);
+        return "redirect:/reservas/stock";
+    }
+    @GetMapping("/reservas/historial/pdf")
+    public String descargarHistorialPdf(RedirectAttributes redirectAttributes, Model model) {
+        List<ReservaModelo> historial = servicio.listarHistorial();
+        if (historial == null || historial.isEmpty()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "No es posible descargar el historial sin registros actualmente.");
+            return "redirect:/reservas";
+        }
+        
+        model.addAttribute("historial", historial);
+        model.addAttribute("fechaGeneracion", java.time.LocalDateTime.now());
+        return "historial_pdf"; 
     }
 }
